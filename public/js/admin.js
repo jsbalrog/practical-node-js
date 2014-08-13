@@ -52,6 +52,6 @@ var update = function(event) {
 
 $(document).ready(function() {
 	var $element = $('.admin tbody');
-	$element.on('click', 'button.remov', remove);
+	$element.on('click', 'button.remove', remove);
 	$element.on('click', 'button', update);
 });

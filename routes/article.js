@@ -34,7 +34,7 @@ exports.edit = function(req, res, next) {
 
 exports.del = function(req, res, next) {
 	if(!req.params.id) return enxt(new Error('No article Id.'));
-	req.collections.articles.removeById(req, params.id, function(error, count) {
+	req.collections.articles.removeById(req.params.id, function(error, count) {
 		if(error) return next(error);
 		res.send({ affectedCount: count });
 	});

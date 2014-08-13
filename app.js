@@ -18,7 +18,7 @@ var express = require('express')
 	, methodOverride = require('method-override');
 
 var app = express();
-app.locals.appTitle = 'blog-express';
+app.locals.appTitle = 'BrightSpace';
 
 // ------- Configure settings --------
 // configure port
