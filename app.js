@@ -47,17 +47,37 @@ app.use(function(req, res, next) {
 	return next();
 });
 
+// session-based authentication (don't use cookie-sesson--stores entire session!)
+app.use(cookieParser('hiawatha'));
+app.use(session({ secret: '2333DDEEE-D443' }));
+
+// check request if this is an admin session and store in locals (for templates)
+app.use(function(req, res, next) {
+	if(req.session && req.session.admin) res.locals.admin = true;
+	next();
+});
+
+// define a function for authorization
+var authorize = function(req, res, next) {
+	if(req.session && req.session.admin) {
+		return next();
+	} else {
+		return res.send(401);
+	}
+};
+
 // ------- Define routes --------
 app.get('/', routes.index);
 app.get('/login', routes.user.login);
 app.post('/login', routes.user.authenticate);
 app.get('/logout', routes.user.logout);
-app.get('/admin', routes.article.admin);
-app.get('/post', routes.article.post);
-app.post('/post', routes.article.postArticle);
+app.get('/admin', authorize, routes.article.admin);
+app.get('/post', authorize, routes.article.post);
+app.post('/post', authorize, routes.article.postArticle);
 app.get('/articles/:slug', routes.article.show);
 
 // REST API routes
+app.all('/api', authorize);
 app.get('/api/articles', routes.article.list);
 app.post('/api/articles', routes.article.add);
 app.put('/api/articles/:id', routes.article.edit);
