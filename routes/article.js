@@ -1,3 +1,5 @@
+'use strict';
+
 exports.show = function(req, res, next) {
 	if(!req.params.slug) return next(new Error('No article slug.'));
 	req.models.Article.findOne({ slug: req.params.slug }, function(error, article) {
