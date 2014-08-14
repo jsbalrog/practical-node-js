@@ -1,3 +1,5 @@
+'use strict';
+
 $.ajaxSetup({
 	xhrFields: { withCredentials: true },
 	error: function(xhr, status, error) {
