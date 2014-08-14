@@ -1,3 +1,5 @@
+'use strict';
+
 var TWITTER_CONSUMER_KEY = 'spNdzIhIe0dDdZUUbv4oKmdHF';
 var TWITTER_CONSUMER_SECRET = 'AEyH6eXYZGchRdJRCg2Kwgeu6TymJnVqQ2t82mbT8p9NlBfXSv';
 
