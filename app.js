@@ -1,3 +1,6 @@
+var TWITTER_CONSUMER_KEY = 'spNdzIhIe0dDdZUUbv4oKmdHF';
+var TWITTER_CONSUMER_SECRET = 'AEyH6eXYZGchRdJRCg2Kwgeu6TymJnVqQ2t82mbT8p9NlBfXSv';
+
 // ------- Require dependencies --------
 var express = require('express')
 	, routes = require('./routes')
@@ -10,17 +13,50 @@ var express = require('express')
 			articles: db.collection('articles'),
 			users: db.collection('users')
 		}
-	, session = require('express-session')
-	, logger = require('morgan')
-	, errorHandler = require('errorHandler')
-	, cookieParser = require('cookie-parser')
-	, bodyParser = require('body-parser')
-	, methodOverride = require('method-override');
+  , everyauth = require('everyauth');
+
+// express.js middleware
+var session = require('express-session')
+, logger = require('morgan')
+, errorHandler = require('errorHandler')
+, cookieParser = require('cookie-parser')
+, bodyParser = require('body-parser')
+, methodOverride = require('method-override');
+// configure everyauth
+everyauth.debug = true;
+everyauth.twitter
+.consumerKey(TWITTER_CONSUMER_KEY)
+.consumerSecret(TWITTER_CONSUMER_SECRET)
+.findOrCreateUser(function(session, accessToken, accessTokenSecret, twitterUserMetadata) {
+  var promise = this.Promise();
+  process.nextTick(function() {
+    if(twitterUserMetadata.screen_name === 'jsbalrog') {
+      session.user = twitterUserMetadata;
+      session.admin = true;
+    }
+    promise.fulfill(twitterUserMetadata);
+  });
+  return promise;
+  // return twitterUserMetadata
+})
+.redirectPath('/admin');
+
+everyauth.everymodule.handleLogout(routes.user.logout);
+everyauth.everymodule.findUserById(function(user, callback) {
+  callback(user);
+});
 
 var app = express();
 app.locals.appTitle = 'BrightSpace';
 
-// ------- Configure settings --------
+// expose collections in each express route via the req object
+app.use(function(req, res, next) {
+  if(!collections.articles || !collections.users) return next(new Error('No collections.'));
+  req.collections = collections;
+  return next();
+});
+
+// express.js configurations
 // configure port
 app.set('port', process.env.PORT || 3000);
 // configure views location
@@ -28,45 +64,40 @@ app.set('views', path.join(__dirname, 'views'));
 // configure view engine
 app.set('view engine', 'jade');
 
-// ------- Define middleware --------
+// express.js middleware configuration
 app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded());
+// session-based authentication (don't use cookie-sesson--stores entire session!)
+app.use(cookieParser('hiawatha'));
+app.use(session({ secret: '2333DDEEE-D443' }));
+app.use(everyauth.middleware());
 app.use(methodOverride());
 app.use(require('stylus').middleware(__dirname + '/public'));
 app.use(express.static(path.join(__dirname, 'public')));
 
-if('development' == app.get('env')) {
-	app.use(errorHandler());
-}
-
-// expose collections in each express route via the req object
-app.use(function(req, res, next) {
-	if(!collections.articles || !collections.users) return next(new Error('No collections.'));
-	req.collections = collections;
-	return next();
-});
-
-// session-based authentication (don't use cookie-sesson--stores entire session!)
-app.use(cookieParser('hiawatha'));
-app.use(session({ secret: '2333DDEEE-D443' }));
-
+// authentication middleware
 // check request if this is an admin session and store in locals (for templates)
 app.use(function(req, res, next) {
-	if(req.session && req.session.admin) res.locals.admin = true;
-	next();
+  if(req.session && req.session.admin) res.locals.admin = true;
+  next();
 });
 
 // define a function for authorization
 var authorize = function(req, res, next) {
-	if(req.session && req.session.admin) {
-		return next();
-	} else {
-		return res.send(401);
-	}
+  if(req.session && req.session.admin) {
+    return next();
+  } else {
+    return res.send(401);
+  }
 };
 
-// ------- Define routes --------
+// dev only
+if('development' == app.get('env')) {
+	app.use(errorHandler());
+}
+
+// pages and routes 
 app.get('/', routes.index);
 app.get('/login', routes.user.login);
 app.post('/login', routes.user.authenticate);
@@ -82,7 +113,6 @@ app.get('/api/articles', routes.article.list);
 app.post('/api/articles', routes.article.add);
 app.put('/api/articles/:id', routes.article.edit);
 app.del('/api/articles/:id', routes.article.del);
-
 
 // Catch-all
 app.all('*', function(req, res) {
